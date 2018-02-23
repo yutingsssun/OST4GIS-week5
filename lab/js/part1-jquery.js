@@ -170,6 +170,123 @@ var Stamen_TonerLite = L.tileLayer('http://stamen-tiles-{s}.a.ssl.fastly.net/ton
 // This is a popular pattern that you'll run into in programs that run jQuery. It says not to run
 // the function passed to `ready` until the HTML document is fully loaded and all scripts have
 // been interpreted. It is, therefore, an example of asynchronous behavior.
+
+/* =====================
+  Create a variable to store our data
+  This is where we will store our markers when they're on the map. This is a global variable that
+  we can use throughout our application.
+===================== */
+
+
+/* =====================
+Use function to get and parse crime data
+===================== */
+
 $(document).ready(function() {
-  // Do your stuff here
+  // Task 1
+  $("#main-heading").text('Philadelphia Crime');
+  $("#text-label1").text('General Crime Category');
+  $("#number-label").text('District');
+  $("#checkbox-label1").text('PSA 1');
+  $("#checkbox-label2").text('PSA 2');
+  $("#color-label").text('Prefferred Color');
+  $("#my-button").text('Plot Data');
+
+  // Task 2
+  $("#text-input1").val('');
+  $("#numeric-input").val();
+  $("#cbox-input1").val();
+  $("#cbox-input2").val();
+  $("#color-input").val('#47AD65');
+
+  // Task 3
+  var appState = {
+    "markers": undefined,
+    "data": undefined,
+    "numericField": undefined,
+    "booleanField1": undefined,
+    "booleanField2": undefined,
+    "colorField": undefined,
+    "stringField": undefined,
+  };
+  var originaldata = $.ajax('https://raw.githubusercontent.com/CPLN-692-401/datasets/master/json/philadelphia-crime-snippet.json')
+
+  var parseData = function(data) {return JSON.parse(data);};
+
+  var getAndParseData = function() {
+    originaldata.done(function(data) {
+      var parsed = parseData(data);
+      console.log(parsed);
+      appState.data = parsed;
+    });
+  };
+
+  getAndParseData();
+
+  // Task 4
+  $('#text-input1').prop('disabled', false)
+  $('#numeric-input').prop('disabled', false)
+  $('#cbox-input1').prop('disabled', false)
+  $('#cbox-input2').prop('disabled', false)
+
+  // Task 5
+  $('#my-button').click(function(e) {
+    appState.numericField = $('#numeric-input').val();
+    console.log("numericField", appState.numericField);
+
+    appState.booleanField1 = $('#cbox-input1')[0].checked;
+    console.log("booleanField1", appState.booleanField1);
+
+    appState.booleanField2 = $('#cbox-input2')[0].checked;
+    console.log("booleanField2", appState.booleanField2);
+
+    appState.stringField = $('#text-input1').val();
+    console.log("stringField", appState.stringField);
+
+    appState.colorField = $('#color-input').val();
+    console.log("colorField", appState.colorField);
+
+    // Task 6
+    var plotData = function() {
+      var filterPredicate = function(datum) {
+        var conditionStatus = true;
+        if (appState.numericField) {
+          conditionStatus = conditionStatus && appState.numericField <= datum.District && appState.numericField >= datum.District; }
+        if (appState.booleanField1) { conditionStatus = conditionStatus && datum.PSA === 1; }
+        if (appState.booleanField2) { conditionStatus = conditionStatus && datum.PSA === 2; }
+        if (appState.stringField) {
+          conditionStatus = conditionStatus && datum['General Crime Category'].toUpperCase().includes(appState.stringField.toUpperCase());
+        }
+        return conditionStatus;
+      };
+
+      var filtered = _.filter(appState.data, filterPredicate);
+
+      appState.markers = _.map(filtered, function(datum) {
+        return L.circleMarker([datum.Lat,datum.Lng],
+          {radius: 8, fillOpacity: 0.8, color: 'white', fillColor: appState.colorField,
+          weight: 2,}).bindPopup(datum['General Crime Category']);
+      });
+
+      console.log("Attaching " + appState.markers.length + " markers to the map");
+      _.each(appState.markers, function(marker) {
+        marker.addTo(map);
+      });
+    };
+
+    var resetMap = function() {
+      _.each(appState.markers, function(marker, i) {
+        map.removeLayer(marker);
+      });
+      appState.markers = [];
+    };
+
+    resetMap();
+
+    plotData();
+
+  });
+
+
+
 });
